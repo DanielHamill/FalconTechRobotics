@@ -35,7 +35,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
-//import com.qualcomm.robotcore
 
 /**
  * This file contains an example of an iterative (Non-Linear) "OpMode".
@@ -52,15 +51,13 @@ import com.qualcomm.robotcore.util.Range;
  */
 
 @TeleOp(name="Basic: Iterative OpMode", group="Iterative Opmode")
-//@Disabled
-public class MainTeleOp extends OpMode
+@Disabled
+public class TestOpMode extends OpMode
 {
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
-    private DcMotor left = null;
-    private DcMotor right = null;
-    private DcMotor top = null;
-    private DcMotor bottom = null;
+    private DcMotor leftDrive = null;
+    private DcMotor rightDrive = null;
 
     /*
      * Code to run ONCE when the driver hits INIT
@@ -72,15 +69,13 @@ public class MainTeleOp extends OpMode
         // Initialize the hardware variables. Note that the strings used here as parameters
         // to 'get' must correspond to the names assigned during the robot configuration
         // step (using the FTC Robot Controller app on the phone).
-        left  = hardwareMap.get(DcMotor.class, "lMain");
-        right = hardwareMap.get(DcMotor.class, "rMain");
-        top = hardwareMap.get(DcMotor.class, "tMain");
-        bottom = hardwareMap.get(DcMotor.class, "bMain");
+        leftDrive  = hardwareMap.get(DcMotor.class, "left_drive");
+        rightDrive = hardwareMap.get(DcMotor.class, "right_drive");
 
         // Most robots need the motor on one side to be reversed to drive forward
         // Reverse the motor that runs backwards when connected directly to the battery
-//        leftDrive.setDirection(DcMotor.Direction.FORWARD);
-//        rightDrive.setDirection(DcMotor.Direction.REVERSE);
+        leftDrive.setDirection(DcMotor.Direction.FORWARD);
+        rightDrive.setDirection(DcMotor.Direction.REVERSE);
 
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Initialized");
@@ -99,7 +94,6 @@ public class MainTeleOp extends OpMode
     @Override
     public void start() {
         runtime.reset();
-
     }
 
     /*
@@ -116,10 +110,10 @@ public class MainTeleOp extends OpMode
 
         // POV Mode uses left stick to go forward, and right stick to turn.
         // - This uses basic math to combine motions and is easier to drive straight.
-        double vertical = gamepad1.right_stick_y;
-        double horizontal = gamepad1.right_stick_x;
-        vertical    = Range.clip(vertical, -1.0, 1.0) ;
-        horizontal   = Range.clip(horizontal, -1.0, 1.0) ;
+        double drive = -gamepad1.left_stick_y;
+        double turn  =  gamepad1.right_stick_x;
+        leftPower    = Range.clip(drive + turn, -1.0, 1.0) ;
+        rightPower   = Range.clip(drive - turn, -1.0, 1.0) ;
 
         // Tank Mode uses one stick to control each wheel.
         // - This requires no math, but it is hard to drive forward slowly and keep straight.
@@ -127,12 +121,12 @@ public class MainTeleOp extends OpMode
         // rightPower = -gamepad1.right_stick_y ;
 
         // Send calculated power to wheels
-        left.setPower(vertical);
-        right.setPower(vertical);
-        top.setPower(horizontal);
-        bottom.setPower(horizontal);
+        leftDrive.setPower(leftPower);
+        rightDrive.setPower(rightPower);
 
         // Show the elapsed game time and wheel power.
+        telemetry.addData("Status", "Run Time: " + runtime.toString());
+        telemetry.addData("Motors", "left (%.2f), right (%.2f)", leftPower, rightPower);
     }
 
     /*
