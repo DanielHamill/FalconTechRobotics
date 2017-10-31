@@ -33,6 +33,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 //import com.qualcomm.robotcore
@@ -79,7 +80,8 @@ public class MainTeleOp extends OpMode
 
         // Most robots need the motor on one side to be reversed to drive forward
         // Reverse the motor that runs backwards when connected directly to the battery
-//        leftDrive.setDirection(DcMotor.Direction.FORWARD);
+        top.setDirection(DcMotor.Direction.REVERSE);
+        right.setDirection(DcMotor.Direction.REVERSE);
 //        rightDrive.setDirection(DcMotor.Direction.REVERSE);
 
         // Tell the driver that initialization is complete.
@@ -116,7 +118,7 @@ public class MainTeleOp extends OpMode
 
         // POV Mode uses left stick to go forward, and right stick to turn.
         // - This uses basic math to combine motions and is easier to drive straight.
-        double vertical = gamepad1.right_stick_y;
+        double vertical = gamepad1.left_stick_y;
         double horizontal = gamepad1.right_stick_x;
         vertical    = Range.clip(vertical, -1.0, 1.0) ;
         horizontal   = Range.clip(horizontal, -1.0, 1.0) ;
@@ -127,10 +129,27 @@ public class MainTeleOp extends OpMode
         // rightPower = -gamepad1.right_stick_y ;
 
         // Send calculated power to wheels
+        if(gamepad1.left_trigger != 0) {
+            left.setPower(gamepad1.left_trigger);
+            right.setPower(-gamepad1.left_trigger);
+            top.setPower(-gamepad1.left_trigger);
+            bottom.setPower(gamepad1.left_trigger);
+            return;
+        }
+
+        if(gamepad1.right_trigger != 0) {
+            left.setPower(-gamepad1.right_trigger);
+            right.setPower(gamepad1.right_trigger);
+            top.setPower(gamepad1.right_trigger);
+            bottom.setPower(-gamepad1.right_trigger);
+            return;
+        }
+
         left.setPower(vertical);
         right.setPower(vertical);
         top.setPower(horizontal);
         bottom.setPower(horizontal);
+
 
         // Show the elapsed game time and wheel power.
     }

@@ -40,7 +40,7 @@ public class VuMarkFinder {
         parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
         parameters.vuforiaLicenseKey = licenseKey;
 
-        parameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+        parameters.cameraDirection = VuforiaLocalizer.CameraDirection.FRONT;
         this.vuforia = ClassFactory.createVuforiaLocalizer(parameters);
 
         relicTrackables = this.vuforia.loadTrackablesFromAsset("RelicVuMark");
