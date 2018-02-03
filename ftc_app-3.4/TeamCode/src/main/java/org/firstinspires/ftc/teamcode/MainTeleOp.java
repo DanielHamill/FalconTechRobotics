@@ -34,6 +34,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 //import com.qualcomm.robotcore
@@ -52,16 +53,50 @@ import com.qualcomm.robotcore.util.Range;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@TeleOp(name="Basic: Iterative OpMode", group="Iterative Opmode")
+@TeleOp(name="Main Teleop", group="Iterative Opmode")
 //@Disabled
 public class MainTeleOp extends OpMode
 {
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
-    private DcMotor left = null;
-    private DcMotor right = null;
-    private DcMotor top = null;
-    private DcMotor bottom = null;
+//    private DcMotor topLeft;
+//    private DcMotor topRight;
+//    private DcMotor bottomLeft;
+//    private DcMotor bottomRight;
+
+//    private DcMotor top;
+//    private DcMotor bottom;
+//    private DcMotor left;
+//    private DcMotor right;
+
+    private Servo armLeft;
+    private Servo armRight;
+
+    private DcMotor extendL;
+    private DcMotor extendR;
+
+    private DcMotor mainLeft;
+    private DcMotor mainRight;
+
+    //data
+    double angleL = 0.0;
+    double dAngleL = 0.0;
+    double time = 0.0;
+    double dTime = 0.0;
+    double speedL = 0.0;
+
+    double angleR = 0.0;
+    double dAngleR = 0.0;
+    double speedR = 0.0;
+
+    double speedLT =0;
+    double speedRT=0;
+    double aveL =0;
+    double aveR=0;
+    int ite=0;
+
+    double t1;
+    int c1;
 
     /*
      * Code to run ONCE when the driver hits INIT
@@ -73,16 +108,35 @@ public class MainTeleOp extends OpMode
         // Initialize the hardware variables. Note that the strings used here as parameters
         // to 'get' must correspond to the names assigned during the robot configuration
         // step (using the FTC Robot Controller app on the phone).
-        left  = hardwareMap.get(DcMotor.class, "lMain");
-        right = hardwareMap.get(DcMotor.class, "rMain");
-        top = hardwareMap.get(DcMotor.class, "tMain");
-        bottom = hardwareMap.get(DcMotor.class, "bMain");
+
+//        topLeft  = hardwareMap.get(DcMotor.class, "tl");
+//        topRight = hardwareMap.get(DcMotor.class, "tr");
+//        bottomLeft = hardwareMap.get(DcMotor.class, "bl");
+//        bottomRight = hardwareMap.get(DcMotor.class, "br");
+
+//        top  = hardwareMap.get(DcMotor.class, "top");
+//        bottom = hardwareMap.get(DcMotor.class, "bottom");
+//        left = hardwareMap.get(DcMotor.class, "left");
+//        right = hardwareMap.get(DcMotor.class, "right");
+
+
+
+        mainLeft = hardwareMap.get(DcMotor.class, "left");
+        mainRight = hardwareMap.get(DcMotor.class, "right");
+        mainLeft.setDirection(DcMotor.Direction.REVERSE);
+
+        extendL = hardwareMap.get(DcMotor.class, "exL");
+        extendR = hardwareMap.get(DcMotor.class, "exR");
+
+        armLeft = hardwareMap.get(Servo.class, "armL");
+        armLeft.setPosition(-1);
+        armRight = hardwareMap.get(Servo.class, "armR");
+        armRight.setPosition(1);
 
         // Most robots need the motor on one side to be reversed to drive forward
         // Reverse the motor that runs backwards when connected directly to the battery
-        top.setDirection(DcMotor.Direction.REVERSE);
-        right.setDirection(DcMotor.Direction.REVERSE);
-//        rightDrive.setDirection(DcMotor.Direction.REVERSE);
+
+//        bottomRight.setDirection(DcMotor.Direction.REVERSE);
 
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Initialized");
@@ -109,19 +163,85 @@ public class MainTeleOp extends OpMode
      */
     @Override
     public void loop() {
-        // Setup a variable for each drive wheel to save power level for telemetry
-        double leftPower;
-        double rightPower;
+         //Setup a variable for each drive wheel to save power level for telemetry
+        double leftPower = Range.clip(gamepad1.left_stick_y, -1, 1);
+        double rightPower = Range.clip(gamepad1.right_stick_y, -1, 1);
+
+        mainLeft.setPower(leftPower);
+        mainRight.setPower(rightPower);
+
+        if(gamepad2.left_trigger != 0.0) {
+            extendL.setPower(-gamepad2.left_trigger);
+            extendR.setPower(gamepad2.left_trigger);
+        }
+        else if(gamepad2.right_trigger != 0.0) {
+            extendL.setPower(gamepad2.right_trigger);
+            extendR.setPower(-gamepad2.right_trigger);
+        }
+        else{
+            extendL.setPower(0.0);
+            extendR.setPower(0.0);
+        }
+
+        if(gamepad2.a) {
+            armLeft.setPosition(0.0);
+            armRight.setPosition(0.95);
+        }
+
+        if(gamepad2.b) {
+            armLeft.setPosition(0.45);
+            armRight.setPosition(0.5);
+        }
 
         // Choose to drive using either Tank Mode, or POV Mode
         // Comment out the method that's not used.  The default below is POV.
 
         // POV Mode uses left stick to go forward, and right stick to turn.
         // - This uses basic math to combine motions and is easier to drive straight.
-        double vertical = gamepad1.left_stick_y;
-        double horizontal = gamepad1.right_stick_x;
-        vertical    = Range.clip(vertical, -1.0, 1.0) ;
-        horizontal   = Range.clip(horizontal, -1.0, 1.0) ;
+//        double y = gamepad1.left_stick_y;
+//        double x = gamepad1.right_stick_x;
+//        double z = gamepad1.right_trigger - gamepad1.left_trigger;
+//
+//        if(gamepad1.left_stick_x != 0.0) {
+//            top.setPower(-gamepad1.left_stick_x);
+//            bottom.setPower(gamepad1.left_stick_x);
+//        }
+//        else {
+//            top.setPower(0.0);
+//            bottom.setPower(0.0);
+//        }
+//
+//        if(gamepad1.right_stick_y != 0.0) {
+//            left.setPower(gamepad1.right_stick_y);
+//            right.setPower(-gamepad1.right_stick_y);
+//        }
+//        else {
+//            left.setPower(0.0);
+//            right.setPower(0.0);
+//        }
+//
+//        if(gamepad1.left_trigger != 0) {
+//            top.setPower(gamepad1.left_trigger);
+//            bottom.setPower(gamepad1.left_trigger);
+//            left.setPower(gamepad1.left_trigger);
+//            right.setPower(gamepad1.left_trigger);
+//            return;
+//        }
+//
+//        if(gamepad1.right_trigger != 0) {
+//            top.setPower(gamepad1.right_trigger);
+//            bottom.setPower(gamepad1.right_trigger);
+//            left.setPower(gamepad1.right_trigger);
+//            right.setPower(gamepad1.right_trigger);
+//            return;
+//        }
+
+
+
+
+
+//        y = Range.clip(y, -1.0, 1.0) ;
+//        x = Range.clip(x, -1.0, 1.0) ;
 
         // Tank Mode uses one stick to control each wheel.
         // - This requires no math, but it is hard to drive forward slowly and keep straight.
@@ -129,29 +249,72 @@ public class MainTeleOp extends OpMode
         // rightPower = -gamepad1.right_stick_y ;
 
         // Send calculated power to wheels
-        if(gamepad1.left_trigger != 0) {
-            left.setPower(gamepad1.left_trigger);
-            right.setPower(-gamepad1.left_trigger);
-            top.setPower(-gamepad1.left_trigger);
-            bottom.setPower(gamepad1.left_trigger);
-            return;
-        }
+//        if(gamepad1.left_trigger != 0) {
+//            topLeft.setPower(gamepad1.left_trigger);
+//            topRight.setPower(gamepad1.left_trigger);
+//            bottomLeft.setPower(gamepad1.left_trigger);
+//            bottomRight.setPower(gamepad1.left_trigger);
+//            return;
+//        }
+//
+//        if(gamepad1.right_trigger != 0) {
+//            topLeft.setPower(gamepad1.right_trigger);
+//            topRight.setPower(gamepad1.right_trigger);
+//            bottomLeft.setPower(gamepad1.right_trigger);
+//            bottomRight.setPower(gamepad1.right_trigger);
+//            return;
+//        }
 
-        if(gamepad1.right_trigger != 0) {
-            left.setPower(-gamepad1.right_trigger);
-            right.setPower(gamepad1.right_trigger);
-            top.setPower(gamepad1.right_trigger);
-            bottom.setPower(-gamepad1.right_trigger);
-            return;
-        }
 
-        left.setPower(vertical);
-        right.setPower(vertical);
-        top.setPower(horizontal);
-        bottom.setPower(horizontal);
 
+        //for diagonal wheels
+//        topLeft.setPower(Range.clip(y+x-z, -1.0, 1.0));
+//        topRight.setPower(Range.clip(y-x+z, -1.0, 1.0));
+//        bottomLeft.setPower(Range.clip(y-x-z, -1.0, 1.0));
+//        bottomRight.setPower(Range.clip(y+x+z, -1.0, 1.0));
+//
+//
+//
+//        if(gamepad2.left_trigger != 0) {
+//            extend.setPower(Range.clip(gamepad2.left_trigger, 0, 1));
+//        }
+//
+//        if(gamepad2.right_trigger != 0) {
+//            extend.setPower(Range.clip(gamepad2.right_trigger, 0, 1));
+//        }
 
         // Show the elapsed game time and wheel power.
+
+
+        aveL += speedL;
+        aveR += speedR;
+        c1++;
+        //TODO: implement speed average
+        if(runtime.milliseconds()> t1 + 1000) {
+            t1 = runtime.milliseconds();
+            aveL = 0;
+            aveR = 0;
+            c1 = 0;
+        }
+
+        dTime = time - runtime.milliseconds() / 1000;
+        time = runtime.milliseconds() / 1000;
+        //left speed calculations
+        dAngleL = angleL - mainLeft.getCurrentPosition();
+        angleL = mainLeft.getCurrentPosition();
+        speedL = dTime != 0.0 ? dAngleL / dTime : 0.0;
+        telemetry.addData("left instantaneous", speedL + " ticks/s");
+        telemetry.addData("left average", aveL/c1 + " ticks/s");
+        //right speed calculations
+        dAngleR = angleR - mainRight.getCurrentPosition();
+        angleR = mainRight.getCurrentPosition();
+
+        speedR = dTime != 0.0 ? dAngleR / dTime : 0.0;
+
+
+        telemetry.addData("right instantaneous", speedR + " ticks/s");
+        telemetry.addData("right average", aveR/c1 + " ticks/s");
+        telemetry.update();
     }
 
     /*
@@ -159,6 +322,8 @@ public class MainTeleOp extends OpMode
      */
     @Override
     public void stop() {
+
     }
+
 
 }
