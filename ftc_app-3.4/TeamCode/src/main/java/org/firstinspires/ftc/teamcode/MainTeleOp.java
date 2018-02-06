@@ -29,11 +29,9 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
@@ -69,8 +67,8 @@ public class MainTeleOp extends OpMode
 //    private DcMotor left;
 //    private DcMotor right;
 
-    private Servo armLeft;
     private Servo armRight;
+    private Servo armLeft;
 
     private DcMotor extendL;
     private DcMotor extendR;
@@ -98,6 +96,19 @@ public class MainTeleOp extends OpMode
     double t1;
     int c1;
 
+    static double PARTIAL_LEFT = 0.55;
+    static double PARTIAL_RIGHT = 0.5;
+//    static double CLOSED_RIGHT = 0.45;
+//    static double CLOSED_LEFT = 0.6;
+//    static double OPEN_RIGHT = 0.8;
+//    static double OPEN_LEFT = 0.1;
+
+    static double OPEN_RIGHT = 0.5;
+    static double OPEN_LEFT = 0.45;
+    static double CLOSED_RIGHT = 0.9;
+    static double CLOSED_LEFT = 0.05;
+
+
     /*
      * Code to run ONCE when the driver hits INIT
      */
@@ -109,30 +120,21 @@ public class MainTeleOp extends OpMode
         // to 'get' must correspond to the names assigned during the robot configuration
         // step (using the FTC Robot Controller app on the phone).
 
-//        topLeft  = hardwareMap.get(DcMotor.class, "tl");
-//        topRight = hardwareMap.get(DcMotor.class, "tr");
-//        bottomLeft = hardwareMap.get(DcMotor.class, "bl");
-//        bottomRight = hardwareMap.get(DcMotor.class, "br");
-
-//        top  = hardwareMap.get(DcMotor.class, "top");
-//        bottom = hardwareMap.get(DcMotor.class, "bottom");
-//        left = hardwareMap.get(DcMotor.class, "left");
-//        right = hardwareMap.get(DcMotor.class, "right");
-
-
-
         mainLeft = hardwareMap.get(DcMotor.class, "left");
+        mainLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         mainRight = hardwareMap.get(DcMotor.class, "right");
+        mainRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         mainLeft.setDirection(DcMotor.Direction.REVERSE);
 
         extendL = hardwareMap.get(DcMotor.class, "exL");
+        extendL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         extendR = hardwareMap.get(DcMotor.class, "exR");
+        extendR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        armLeft = hardwareMap.get(Servo.class, "armL");
-        armLeft.setPosition(-1);
-        armRight = hardwareMap.get(Servo.class, "armR");
-        armRight.setPosition(1);
-
+        armRight = hardwareMap.get(Servo.class, "armL");
+        armLeft = hardwareMap.get(Servo.class, "armR");
+        armRight.setPosition(OPEN_RIGHT);
+        armLeft.setPosition(OPEN_LEFT);
         // Most robots need the motor on one side to be reversed to drive forward
         // Reverse the motor that runs backwards when connected directly to the battery
 
@@ -171,12 +173,18 @@ public class MainTeleOp extends OpMode
         mainRight.setPower(rightPower);
 
         if(gamepad2.left_trigger != 0.0) {
-            extendL.setPower(-gamepad2.left_trigger);
-            extendR.setPower(gamepad2.left_trigger);
+            extendL.setPower(gamepad2.left_trigger);
+            extendR.setPower(-gamepad2.left_trigger);
         }
         else if(gamepad2.right_trigger != 0.0) {
-            extendL.setPower(gamepad2.right_trigger);
-            extendR.setPower(-gamepad2.right_trigger);
+            extendL.setPower(-gamepad2.right_trigger);
+            extendR.setPower(gamepad2.right_trigger);
+        }
+        else if(gamepad2.right_bumper) {
+            extendL.setPower(0.2);
+        }
+        else if(gamepad2.left_bumper) {
+            extendL.setPower(-0.2);
         }
         else{
             extendL.setPower(0.0);
@@ -184,13 +192,13 @@ public class MainTeleOp extends OpMode
         }
 
         if(gamepad2.a) {
-            armLeft.setPosition(0.0);
-            armRight.setPosition(0.95);
+            armRight.setPosition(OPEN_RIGHT);
+            armLeft.setPosition(OPEN_LEFT);
         }
 
         if(gamepad2.b) {
-            armLeft.setPosition(0.45);
-            armRight.setPosition(0.5);
+            armRight.setPosition(CLOSED_RIGHT);
+            armLeft.setPosition(CLOSED_LEFT);
         }
 
         // Choose to drive using either Tank Mode, or POV Mode

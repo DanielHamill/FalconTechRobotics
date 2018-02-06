@@ -94,29 +94,16 @@ public class MainAutonomous extends LinearOpMode {
     int step;
     private ElapsedTime runtime = new ElapsedTime();
     ElapsedTime timer = new ElapsedTime();
-    double averageVel = 0;
-    int aveCount = 0;
+    double rotation = 0;
+    int count;
 
-    double angleL = 0.0;
-    double dAngleL = 0.0;
-    double time = 0.0;
-    double dTime = 0.0;
-    double speedL = 0.0;
-
-    double angleR = 0.0;
-    double dAngleR = 0.0;
-    double speedR = 0.0;
-
-    double speedLT =0;
-    double speedRT=0;
-    double aveL =0;
-    double aveR=0;
-
-    LinkedList<Integer> positionsL;
-    LinkedList<Integer> positionsR;
-    double t1;
-    double t2;
-
+    //speed stuff
+    double t1, t2;
+    int l1, l2, r1, r2;
+    LinkedList<Integer> positionsL, positionsR;
+    LinkedList<Double> times;
+    double averageSpeedL, averageSpeedR;
+    double powerL, powerR;
 
     //motors
     private DcMotor mainLeft;
@@ -125,13 +112,19 @@ public class MainAutonomous extends LinearOpMode {
     @Override public void runOpMode() {
         //misc
         step = 0;
+        //left main motor
         mainLeft = hardwareMap.get(DcMotor.class, "left");
+        mainLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        mainLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //right main motor
         mainRight = hardwareMap.get(DcMotor.class, "right");
+        mainRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        mainRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         mainRight.setDirection(DcMotor.Direction.REVERSE);
 
         //servo
         servo = hardwareMap.get(Servo.class, "servo");
-        servo.setPosition(0.7);
+//        servo.setPosition(0.7);
 
         //sensor stuff
         cs = hardwareMap.get(ColorSensor.class, "csensor");
@@ -141,10 +134,9 @@ public class MainAutonomous extends LinearOpMode {
         gyro = (IntegratingGyroscope)modernRoboticsI2cGyro;
 
         // speed average
-        positionsL = new LinkedList<Double>();
-        positionsR = new LinkedList<Double>();
-        t1 = 0;
-        t2 = 0;
+        positionsL = new LinkedList<Integer>();
+        positionsR = new LinkedList<Integer>();
+        times = new LinkedList<Double>();
 
         //gyro calibration
         telemetry.log().add("Gyro Calibrating. Do Not Move!");
@@ -160,30 +152,74 @@ public class MainAutonomous extends LinearOpMode {
         vuMarkFinder = new VuMarkFinder(hardwareMap, key, telemetry);
 
         telemetry.log().clear();
-        telemetry.log().add("Gyro Calibrated. Press Start.");
+        telemetry.addData("Gyro Calibrated. Press Start.", null);
         telemetry.update();
-        waitForStart();
 
         vuMarkFinder.start();
 
-
-        waitForStart();
-        double timerTenths = runtime.milliseconds();
-        double timerHund = runtime.milliseconds();
-
         runtime.reset();
         telemetry.clear(); telemetry.update();
+        waitForStart();
 
-        double rotation = 0;
+        // main linear opmode
+        if (opModeIsActive()) {
 
-        int count;
-        while (opModeIsActive()) {
+//            int targetPos = mainLeft.getTargetPosition() + 6000;
+//            while(opModeIsActive() && mainLeft.getCurrentPosition() < targetPos) {
+//                mainLeft.setPower(0.5);
+//                mainRight.setPower(0.5);
+//                telemetry.addData("position left", mainLeft.getCurrentPosition());
+//                telemetry.addData("position right", mainRight.getCurrentPosition());
+//                telemetry.addData("target", targetPos);
+//                telemetry.update();
+//            }
+//
+//            mainLeft.setPower(0.0);
+//            mainRight.setPower(0.0);
+//
+//            double timeStart = runtime.milliseconds();
+//
+//            while(opModeIsActive() && runtime.milliseconds() < timeStart + 2000){}
+//
 
+            int target = 90;
+            double targetHeading = modernRoboticsI2cGyro.getHeading() + 83;
+            while(opModeIsActive() && modernRoboticsI2cGyro.getHeading() < targetHeading) {
+                mainLeft.setPower(-0.3);
+                mainRight.setPower(0.3);
+                telemetry.addData("target heading", targetHeading);
+                telemetry.addData("heading", modernRoboticsI2cGyro.getHeading());
+                telemetry.update();
+            }
 
-            double angularVelocity = 0;
-            float rawVel = gyro.getAngularVelocity(AngleUnit.DEGREES).zRotationRate;
+            mainLeft.setPower(0.0);
+            mainRight.setPower(0.0);
+            telemetry.addData("target heading", targetHeading);
+            telemetry.addData("heading", modernRoboticsI2cGyro.getHeading());
+            telemetry.update();
 
-            //turning test
+            while(opModeIsActive()) {}
+
+//            int targetHeading = modernRoboticsI2cGyro.getHeading() + 90;
+//            while(opModeIsActive() /*&& modernRoboticsI2cGyro.getHeading() < targetHeading*/) {
+//                if(gamepad1.a) {
+//                    mainLeft.setPower(-0.2);
+//                    mainRight.setPower(0.2);
+//                }
+//                else {
+//                    mainLeft.setPower(0.0);
+//                    mainRight.setPower(0.0);
+//                }
+//                telemetry.addData("heading", modernRoboticsI2cGyro.getHeading());
+//                telemetry.update();
+//            }
+
+//
+//            mainLeft.setPower(0.0);
+//            mainRight.setPower(0.0);
+
+//            double angularVelocity = 0;
+//            float rawVel = gyro.getAngularVelocity(AngleUnit.DEGREES).zRotationRate;
 //            if (runtime.milliseconds() > timerTenths + 100) {
 //                timerTenths = runtime.milliseconds();
 //                averageVel = 0;
@@ -256,81 +292,75 @@ public class MainAutonomous extends LinearOpMode {
 //                servo.setPosition(0.7);
 //            }
 
-            mainLeft.setPower(gamepad1.left_stick_y);
-            mainRight.setPower(gamepad1.left_stick_y);
+//            telemetry.addData("left speed", averageSpeedL);
+//            telemetry.addData("right speed", averageSpeedR);
 
-            //speed averages
-            if(runtime.milliseconds() > t1 + 100) {
-//                setSpeed(mainLeft, 2000, );
-                t1 = runtime.milliseconds();
-                positionsL.addFirst(mainLeft.getCurrentPosition());
-                speedsR.addFirst(speedR);
-                aveL += speedL;
-                aveR += speedR;
+        }
+    }
 
-                if(speedsL.size() > 20) {
-                    aveL -= speedsL.removeLast();
-                    aveR -= speedsR.removeLast();
-                }
+    public void getSpeed() {
+        if(runtime.milliseconds() > t1 + 100) {
+            mainLeft.setPower(0.5);
+            mainRight.setPower(0.5);
+
+            //positions
+            positionsL.addFirst(mainLeft.getCurrentPosition());
+            positionsR.addFirst(mainRight.getCurrentPosition());
+            l1 = mainLeft.getCurrentPosition();
+            l2 = positionsL.getLast();
+            r1 = mainRight.getCurrentPosition();
+            r2 = positionsR.getLast();
+
+            if(positionsL.size() > 20) {
+                positionsL.removeLast();
+                positionsR.removeLast();
             }
 
-            dTime = time - runtime.milliseconds() / 1000;
-            time = runtime.milliseconds() / 1000;
-            //left speed calculations
-            dAngleL = angleL - mainLeft.getCurrentPosition();
-            angleL = mainLeft.getCurrentPosition();
-            speedL = dTime != 0.0 ? dAngleL / dTime : 0.0;
-            telemetry.addData("left instantaneous", speedL + " ticks/s");
-            telemetry.addData("left average", aveL/speedsL.size() + " ticks/s");
-            telemetry.addData("size", speedsL.size());
-            //right speed calculations
-            dAngleR = angleR - mainRight.getCurrentPosition();
-            angleR = mainRight.getCurrentPosition();
+            //times
+            times.addFirst(runtime.milliseconds());
+            t1 = runtime.milliseconds();
+            t2 = times.getLast();
 
-            speedR = dTime != 0.0 ? dAngleR / dTime : 0.0;
-
-
-            telemetry.addData("right instantaneous", speedR + " ticks/s");
-            telemetry.addData("right average", aveR/speedsR.size() + " ticks/s");
-            telemetry.addData("size", speedsR.size());
-
-//            double adjustedVel = averageVel > 0.01 ? averageVel : 0;
-//            telemetry.addData("average angular velocity", adjustedVel);
-//            telemetry.addData("angle", rotation);
-
-
-            boolean bool = false;
-            for(double num: speedsL) {
-                if(num != 0) {
-                    bool = true;
-                }
-            }
-            if(bool) {
-                telemetry.addData("0", "false");
-            }
-            else {
-                telemetry.addData("0", "true");
+            if(times.size() > 20) {
+                times.removeLast();
             }
 
 
-
-            telemetry.update();
+            averageSpeedL = (double)(l1 - l2) / ((t1 - t2)/1000);
+            averageSpeedR = (double)(r1 - r2) / ((t1 - t2)/1000);
         }
     }
 
     public void setSpeed(DcMotor motor, double speed, double goal, double initialPower) {
 
-        if(motor.getPower() == 0.0) {
-            motor.setPower(initialPower);
+        double power = motor.getPower();
+
+        if(power == 0.0) {
+//            motor.setPower(initialPower);
+            power = initialPower;
         }
 
+
         if(speed < goal) {
-            motor.setPower(motor.getPower() + motor.getPower() * 0.005);
+            telemetry.addData("Increasing", speed < goal);
+//            motor.setPower(motor.getPower() + 0.001);
+            power += 0.001;
         }
-        else if(speed > goal) {
-            motor.setPower(motor.getPower() - motor.getPower() * 0.005);
+        if(speed > goal) {
+            telemetry.addData("Decreasing", speed < goal);
+//            motor.setPower(motor.getPower() - 0.001);
+            power -= 0.001;
+
         }
+        motor.setPower(power);
+
+        telemetry.addData("power",  powerR);
+        telemetry.addData("speed, goal", speed + " " + goal);
+        telemetry.addData("motor power", motor.getPower());
 
     }
 
+    public void telemetry() {
+
+    }
 }
